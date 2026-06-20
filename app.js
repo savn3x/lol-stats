@@ -80,20 +80,25 @@ async function testApiKey() {
   const btn = document.getElementById('btnTestKey');
   if (!val) { result.style.color = 'var(--loss)'; result.textContent = 'Enter a key first.'; return; }
   btn.textContent = 'Testing…'; btn.disabled = true;
+  result.style.color = 'var(--text-secondary)';
+  result.textContent = 'Checking platform + account endpoints…';
   try {
-    const resp = await fetch(
-      'https://euw1.api.riotgames.com/lol/status/v4/platform-data',
-      { headers: { 'X-Riot-Token': val } }
-    );
-    if (resp.ok) {
+    const [platResp, acctResp] = await Promise.all([
+      fetch('https://euw1.api.riotgames.com/lol/status/v4/platform-data', { headers: { 'X-Riot-Token': val } }),
+      fetch('https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/Faker/T1', { headers: { 'X-Riot-Token': val } }),
+    ]);
+    const platOk = platResp.ok;
+    // 404 means key works but player not found — that's fine
+    const acctOk = acctResp.ok || acctResp.status === 404;
+    if (platOk && acctOk) {
       result.style.color = 'var(--win)';
-      result.textContent = '✓ Key is valid!';
-    } else if (resp.status === 401 || resp.status === 403) {
+      result.textContent = '✓ Key valid on both endpoints — ready to search!';
+    } else if (platOk && !acctOk) {
       result.style.color = 'var(--loss)';
-      result.textContent = `✗ Key rejected (${resp.status}) — check if it's correct.`;
+      result.textContent = `✗ Platform OK but account endpoint rejected (${acctResp.status}). Key may lack RSO/account scope.`;
     } else {
-      result.style.color = 'var(--accent)';
-      result.textContent = `Status ${resp.status} — key may be OK.`;
+      result.style.color = 'var(--loss)';
+      result.textContent = `✗ Key rejected (platform: ${platResp.status}, account: ${acctResp.status}).`;
     }
   } catch {
     result.style.color = 'var(--loss)';
@@ -162,16 +167,25 @@ async function doSearch(raw, region) {
   try {
     const routing = ROUTING[region];
 
-    // 1. Get account by Riot ID
-    const accountData = await riotFetch(
-      `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`
-    );
-    currentPuuid = accountData.puuid;
-
-    // 2. Get summoner data
-    const summonerData = await riotFetch(
-      `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${currentPuuid}`
-    );
+    // 1. Get account — try Riot ID first, fall back to summoner name if 401
+    let accountData, summonerData;
+    try {
+      accountData = await riotFetch(
+        `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`
+      );
+      currentPuuid = accountData.puuid;
+      summonerData = await riotFetch(
+        `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${currentPuuid}`
+      );
+    } catch (err) {
+      if (!err.isKeyError) throw err;
+      // account-v1 blocked — fall back to summoner-v4 by name
+      summonerData = await riotFetch(
+        `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${encodeURIComponent(gameName)}`
+      ).catch(() => { throw err; });
+      currentPuuid = summonerData.puuid;
+      accountData = { gameName, tagLine, puuid: currentPuuid };
+    }
 
     // 3. Get ranked data
     const rankedData = await riotFetch(
