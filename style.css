@@ -75,6 +75,14 @@ body {
   transition: opacity 0.2s;
 }
 .btn-search-sm:hover { opacity: 0.85; }
+.btn-settings {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s; flex-shrink: 0; margin-left: auto;
+}
+.btn-settings:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── HOME PAGE ── */
 .home-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }

@@ -68,6 +68,12 @@ async function loadStaticData() {
 
 // ── API KEY MODAL ────────────────────────────────────────────────────────────
 
+function openApiModal() {
+  const input = document.getElementById('apiKeyInput');
+  input.value = apiKey || '';
+  document.getElementById('apiModal').style.display = 'flex';
+}
+
 function saveApiKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
   if (!val.startsWith('RGAPI-')) {
