@@ -167,25 +167,28 @@ async function doSearch(raw, region) {
   try {
     const routing = ROUTING[region];
 
-    // 1. Get account — try Riot ID first, fall back to summoner name if 401
-    let accountData, summonerData;
-    try {
-      accountData = await riotFetch(
-        `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`
-      );
-      currentPuuid = accountData.puuid;
-      summonerData = await riotFetch(
-        `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${currentPuuid}`
-      );
-    } catch (err) {
-      if (!err.isKeyError) throw err;
-      // account-v1 blocked — fall back to summoner-v4 by name
-      summonerData = await riotFetch(
-        `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${encodeURIComponent(gameName)}`
-      ).catch(() => { throw err; });
-      currentPuuid = summonerData.puuid;
-      accountData = { gameName, tagLine, puuid: currentPuuid };
+    // 1. Get account by Riot ID
+    // Riot API returns 401 (not 404) for some non-existent accounts — treat as not found
+    const acctResp = await fetch(
+      `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+      { headers: { 'X-Riot-Token': apiKey } }
+    );
+    if (acctResp.status === 404 || acctResp.status === 401) {
+      throw new Error(`Player "${gameName}#${tagLine}" not found on this region. Check region and tag in the League client (top-right corner).`);
     }
+    if (acctResp.status === 403) {
+      const err = new Error('API key is invalid or expired. Renew it at developer.riotgames.com');
+      err.isKeyError = true; throw err;
+    }
+    if (acctResp.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
+    if (!acctResp.ok) throw new Error(`API error ${acctResp.status}`);
+    const accountData = await acctResp.json();
+    currentPuuid = accountData.puuid;
+
+    // 2. Get summoner data
+    const summonerData = await riotFetch(
+      `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${currentPuuid}`
+    );
 
     // 3. Get ranked data
     const rankedData = await riotFetch(
