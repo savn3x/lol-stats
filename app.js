@@ -190,10 +190,13 @@ async function doSearch(raw, region) {
       `https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${currentPuuid}`
     );
 
-    // 3. Get ranked data
-    const rankedData = await riotFetch(
-      `https://${region}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerData.id}`
-    );
+    // 3. Get ranked data (requires summoner ID — not returned by all key types)
+    let rankedData = [];
+    if (summonerData.id) {
+      rankedData = await riotFetch(
+        `https://${region}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerData.id}`
+      ).catch(() => []);
+    }
 
     // 4. Get last 20 match IDs
     const matchIds = await riotFetch(
@@ -228,15 +231,16 @@ async function fetchMatchesBatched(ids, routing) {
 // ── API HELPER ───────────────────────────────────────────────────────────────
 
 async function riotFetch(url) {
+  const endpoint = url.split('.com')[1]?.split('?')[0] || url;
   const resp = await fetch(url, { headers: { 'X-Riot-Token': apiKey } });
   if (resp.status === 401 || resp.status === 403) {
-    const err = new Error('API key is invalid or expired. Renew it at developer.riotgames.com');
+    const err = new Error(`API key rejected (HTTP ${resp.status}) on ${endpoint}`);
     err.isKeyError = true;
     throw err;
   }
-  if (resp.status === 404) throw new Error('Player not found. Check the Riot ID and region.');
+  if (resp.status === 404) throw new Error(`Player not found (HTTP 404) on ${endpoint}`);
   if (resp.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
-  if (!resp.ok) throw new Error(`API error ${resp.status}`);
+  if (!resp.ok) throw new Error(`API error ${resp.status} on ${endpoint}`);
   return resp.json();
 }
 
