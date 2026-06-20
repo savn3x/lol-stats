@@ -69,9 +69,37 @@ async function loadStaticData() {
 // ── API KEY MODAL ────────────────────────────────────────────────────────────
 
 function openApiModal() {
-  const input = document.getElementById('apiKeyInput');
-  input.value = apiKey || '';
+  document.getElementById('apiKeyInput').value = apiKey || '';
+  document.getElementById('testKeyResult').textContent = '';
   document.getElementById('apiModal').style.display = 'flex';
+}
+
+async function testApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  const result = document.getElementById('testKeyResult');
+  const btn = document.getElementById('btnTestKey');
+  if (!val) { result.style.color = 'var(--loss)'; result.textContent = 'Enter a key first.'; return; }
+  btn.textContent = 'Testing…'; btn.disabled = true;
+  try {
+    const resp = await fetch(
+      'https://euw1.api.riotgames.com/lol/status/v4/platform-data',
+      { headers: { 'X-Riot-Token': val } }
+    );
+    if (resp.ok) {
+      result.style.color = 'var(--win)';
+      result.textContent = '✓ Key is valid!';
+    } else if (resp.status === 401 || resp.status === 403) {
+      result.style.color = 'var(--loss)';
+      result.textContent = `✗ Key rejected (${resp.status}) — check if it's correct.`;
+    } else {
+      result.style.color = 'var(--accent)';
+      result.textContent = `Status ${resp.status} — key may be OK.`;
+    }
+  } catch {
+    result.style.color = 'var(--loss)';
+    result.textContent = '✗ Network error — check your connection.';
+  }
+  btn.textContent = 'Test Key'; btn.disabled = false;
 }
 
 function saveApiKey() {
@@ -160,7 +188,7 @@ async function doSearch(raw, region) {
 
     renderProfile(accountData, summonerData, rankedData, matches);
   } catch (err) {
-    showError(err.message || 'Unexpected error. Check your API key and try again.');
+    showError(err.message || 'Unexpected error. Check your API key and try again.', !!err.isKeyError);
   }
 }
 
@@ -185,8 +213,9 @@ async function fetchMatchesBatched(ids, routing) {
 async function riotFetch(url) {
   const resp = await fetch(url, { headers: { 'X-Riot-Token': apiKey } });
   if (resp.status === 401 || resp.status === 403) {
-    setTimeout(openApiModal, 300);
-    throw new Error('Invalid or expired API key — update it below.');
+    const err = new Error('API key is invalid or expired. Renew it at developer.riotgames.com');
+    err.isKeyError = true;
+    throw err;
   }
   if (resp.status === 404) throw new Error('Player not found. Check the Riot ID and region.');
   if (resp.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
@@ -204,11 +233,14 @@ function setLoadingState() {
   document.getElementById('profileContent').style.display = 'none';
 }
 
-function showError(msg) {
+function showError(msg, isKeyError = false) {
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('errorState').style.display = 'flex';
   document.getElementById('profileContent').style.display = 'none';
+  document.getElementById('errorIcon').textContent = isKeyError ? '🔑' : '⚠';
+  document.getElementById('errorTitle').textContent = isKeyError ? 'API Key Error' : 'Player not found';
   document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorApiBtn').style.display = isKeyError ? '' : 'none';
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────

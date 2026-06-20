@@ -184,6 +184,7 @@ body {
   cursor: pointer; font-family: inherit; font-size: 14px; transition: border-color 0.2s;
 }
 .btn-back:hover { border-color: var(--border-hover); }
+.error-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
 /* Summoner card */
 .summoner-card {

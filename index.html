@@ -90,10 +90,13 @@
 
     <!-- Error -->
     <div id="errorState" class="error-state" style="display:none">
-      <div class="error-icon">⚠</div>
-      <h2 class="error-title">Player not found</h2>
-      <p class="error-msg" id="errorMsg">Check the Riot ID and region and try again.</p>
-      <button class="btn-back" onclick="showHome()">← Back to search</button>
+      <div class="error-icon" id="errorIcon">⚠</div>
+      <h2 class="error-title" id="errorTitle">Error</h2>
+      <p class="error-msg" id="errorMsg"></p>
+      <div class="error-actions">
+        <button class="btn-back" onclick="showHome()">← Back to search</button>
+        <button class="btn-back" id="errorApiBtn" onclick="openApiModal()" style="display:none;border-color:var(--accent);color:var(--accent)">🔑 Update API Key</button>
+      </div>
     </div>
 
     <!-- Profile content -->
@@ -154,11 +157,15 @@
   <!-- API KEY MODAL -->
   <div id="apiModal" class="modal-overlay">
     <div class="modal">
-      <h2 class="modal-title">⚙ API Key Required</h2>
-      <p class="modal-desc">Enter your Riot Games Developer API key.<br/>Get one at <strong>developer.riotgames.com</strong></p>
+      <h2 class="modal-title">🔑 API Key</h2>
+      <p class="modal-desc">Enter your Riot Games API key.<br/>Get one at <strong>developer.riotgames.com</strong></p>
       <input type="text" id="apiKeyInput" class="api-key-input" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-      <p class="modal-hint">Developer keys expire every 24 hours.</p>
-      <button class="btn-primary" onclick="saveApiKey()">Save & Continue</button>
+      <p class="modal-hint" id="apiKeyHint">Developer keys expire every 24 hours. Production keys do not.</p>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" onclick="saveApiKey()" style="flex:1">Save & Continue</button>
+        <button class="btn-primary" onclick="testApiKey()" style="flex:0 0 auto;background:var(--bg-card2);color:var(--text-secondary);border:1px solid var(--border)" id="btnTestKey">Test Key</button>
+      </div>
+      <p id="testKeyResult" style="font-size:13px;margin-top:10px;text-align:center;min-height:18px"></p>
     </div>
   </div>
 
