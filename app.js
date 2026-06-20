@@ -174,14 +174,14 @@ async function doSearch(raw, region) {
       { headers: { 'X-Riot-Token': apiKey } }
     );
     if (acctResp.status === 404 || acctResp.status === 401) {
-      throw new Error(`Player "${gameName}#${tagLine}" not found on this region. Check region and tag in the League client (top-right corner).`);
+      throw new Error(`Player "${gameName}#${tagLine}" not found (HTTP ${acctResp.status}). Check region and tag in the League client.`);
     }
     if (acctResp.status === 403) {
-      const err = new Error('API key is invalid or expired. Renew it at developer.riotgames.com');
+      const err = new Error(`API key forbidden (HTTP 403). Renew it at developer.riotgames.com`);
       err.isKeyError = true; throw err;
     }
     if (acctResp.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
-    if (!acctResp.ok) throw new Error(`API error ${acctResp.status}`);
+    if (!acctResp.ok) throw new Error(`Unexpected API error (HTTP ${acctResp.status})`);
     const accountData = await acctResp.json();
     currentPuuid = accountData.puuid;
 
