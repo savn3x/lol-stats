@@ -184,8 +184,10 @@ async function fetchMatchesBatched(ids, routing) {
 
 async function riotFetch(url) {
   const resp = await fetch(url, { headers: { 'X-Riot-Token': apiKey } });
-  if (resp.status === 401) throw new Error('Invalid API key. Update it in settings.');
-  if (resp.status === 403) throw new Error('API key expired or forbidden. Renew it at developer.riotgames.com');
+  if (resp.status === 401 || resp.status === 403) {
+    setTimeout(openApiModal, 300);
+    throw new Error('Invalid or expired API key — update it below.');
+  }
   if (resp.status === 404) throw new Error('Player not found. Check the Riot ID and region.');
   if (resp.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
   if (!resp.ok) throw new Error(`API error ${resp.status}`);

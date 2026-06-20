@@ -80,9 +80,14 @@ body {
   color: var(--text-secondary); padding: 6px 12px; border-radius: var(--radius-sm);
   font-size: 12px; font-weight: 500; font-family: inherit;
   cursor: pointer; display: flex; align-items: center; gap: 6px;
-  transition: all 0.2s; flex-shrink: 0; margin-left: auto;
+  transition: all 0.2s; flex-shrink: 0;
+  position: relative; z-index: 110;
 }
 .btn-settings:hover { border-color: var(--accent); color: var(--accent); }
+/* push settings button to the right when search bar is hidden */
+.header-inner { gap: 16px; }
+#headerSearch[style*="display:none"] ~ .btn-settings,
+#headerSearch:not([style]) ~ .btn-settings { margin-left: auto; }
 
 /* ── HOME PAGE ── */
 .home-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
